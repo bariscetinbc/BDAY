@@ -1,0 +1,10 @@
+{
+  "name": "dogum-gunu-hediyesi",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Birthday gift message tool: date, name, euro amount, optional IBAN and given-date EUR/TRY rate. Windows and Mac builds are prepared by GitHub Actions.",
+  "scripts": {
+    "build": "python3 build.py",
+    "test": "python3 selftest.py"
+  }
+}

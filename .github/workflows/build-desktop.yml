@@ -1,0 +1,73 @@
+name: Build Windows and Mac apps
+
+# Runs on every push and can also be started by hand from the Actions tab.
+# A tag beginning with v (for example v1.0) also publishes a GitHub release
+# with the finished installers attached.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows program
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install packaging tool
+        run: python -m pip install --upgrade pip pyinstaller
+      - name: Check the calculations
+        run: python selftest.py
+      - name: Build the Windows executable
+        run: pyinstaller --noconfirm --clean birthday_gift.spec
+      - name: Zip the program
+        run: Compress-Archive -Path dist/DogumGunuHediyesi.exe -DestinationPath DogumGunuHediyesi-Windows.zip
+        shell: pwsh
+      - name: Keep the download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows
+          path: DogumGunuHediyesi-Windows.zip
+
+  macos:
+    name: Mac program
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install packaging tool
+        run: python3 -m pip install --upgrade pip pyinstaller
+      - name: Check the calculations
+        run: python3 selftest.py
+      - name: Build the Mac application
+        run: pyinstaller --noconfirm --clean birthday_gift_macos.spec
+      - name: Package as a disk image
+        run: hdiutil create -volname "Birthday Gift" -srcfolder dist/DogumGunuHediyesi.app -ov -format UDZO DogumGunuHediyesi-Mac.dmg
+      - name: Keep the download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mac
+          path: DogumGunuHediyesi-Mac.dmg
+
+  release:
+    name: Publish downloads
+    needs: [windows, macos]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloads
+      - name: Attach both downloads to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: downloads/**/*
