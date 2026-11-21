@@ -6,9 +6,9 @@ python -m pip install --upgrade pyinstaller
 echo Checking the calculations...
 python selftest.py || goto :error
 echo Building the Windows program...
-pyinstaller --noconfirm --clean birthday_gift.spec || goto :error
+pyinstaller --noconfirm --clean bday.spec || goto :error
 echo.
-echo Done. Your program is: dist\DogumGunuHediyesi.exe
+echo Done. Your program is: dist\BDAY.exe
 echo You can copy that single file anywhere on the computer and double-click it.
 pause
 exit /b 0

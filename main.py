@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Single entry point for the birthday gift desktop app on every platform.
+"""Single entry point for the BDAY desktop app on every platform.
 
 Linux uses the existing GTK window. Windows and macOS use the Tk window that
 ships with the standard Python installer. If neither toolkit can start, the

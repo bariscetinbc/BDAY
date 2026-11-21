@@ -1,4 +1,4 @@
-name: Build Windows and Mac apps
+name: Build BDAY for Windows and Mac
 
 # Runs on every push and can also be started by hand from the Actions tab.
 # A tag beginning with v (for example v1.0) also publishes a GitHub release
@@ -26,15 +26,15 @@ jobs:
       - name: Check the calculations
         run: python selftest.py
       - name: Build the Windows executable
-        run: pyinstaller --noconfirm --clean birthday_gift.spec
+        run: pyinstaller --noconfirm --clean bday.spec
       - name: Zip the program
-        run: Compress-Archive -Path dist/DogumGunuHediyesi.exe -DestinationPath DogumGunuHediyesi-Windows.zip
+        run: Compress-Archive -Path dist/BDAY.exe -DestinationPath BDAY-Windows.zip
         shell: pwsh
       - name: Keep the download
         uses: actions/upload-artifact@v4
         with:
           name: Windows
-          path: DogumGunuHediyesi-Windows.zip
+          path: BDAY-Windows.zip
 
   macos:
     name: Mac program
@@ -49,14 +49,14 @@ jobs:
       - name: Check the calculations
         run: python3 selftest.py
       - name: Build the Mac application
-        run: pyinstaller --noconfirm --clean birthday_gift_macos.spec
+        run: pyinstaller --noconfirm --clean bday_macos.spec
       - name: Package as a disk image
-        run: hdiutil create -volname "Birthday Gift" -srcfolder dist/DogumGunuHediyesi.app -ov -format UDZO DogumGunuHediyesi-Mac.dmg
+        run: hdiutil create -volname "BDAY" -srcfolder dist/BDAY.app -ov -format UDZO BDAY-Mac.dmg
       - name: Keep the download
         uses: actions/upload-artifact@v4
         with:
           name: Mac
-          path: DogumGunuHediyesi-Mac.dmg
+          path: BDAY-Mac.dmg
 
   release:
     name: Publish downloads

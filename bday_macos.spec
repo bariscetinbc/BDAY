@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller recipe: one self-contained Windows executable."""
+"""PyInstaller recipe: a double-clickable macOS .app."""
 
 page_files = [
     ("src/index.html", "."),
@@ -17,8 +17,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=["matplotlib", "numpy", "pandas", "PyQt5", "PySide2", "PySide6"],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
     cipher=None,
     noarchive=False,
 )
@@ -28,11 +26,9 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
-    name="DogumGunuHediyesi",
+    exclude_binaries=True,
+    name="BDAY",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -43,4 +39,27 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="BDAY",
+)
+
+app = BUNDLE(
+    coll,
+    name="BDAY.app",
+    icon=None,
+    bundle_identifier="com.bday.app",
+    info_plist={
+        "NSHighResolutionCapable": True,
+        "CFBundleDisplayName": "BDAY",
+        "LSMinimumSystemVersion": "10.13.0",
+    },
 )

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Cross-platform desktop window for the birthday gift tool (Windows/macOS).
+"""Cross-platform desktop window for BDAY (Windows/macOS).
 
 Uses Tk, which ships with the standard Python installers for Windows and macOS.
-The Linux build keeps the existing GTK window in gift_app.py. Both windows use
-the exact same calculation code in gift_logic.py.
+Currency, language and light/dark theme are selectable and remembered.
+The Linux build keeps the GTK window in gift_app.py. Both use gift_logic.py.
 """
 
 from __future__ import annotations
@@ -20,166 +20,310 @@ class GiftAppTk:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.messages: queue.Queue = queue.Queue()
+        self.prefs = logic.load_preferences()
+        self.lang = self.prefs["lang"]
+        self.theme = self.prefs["theme"]
+        self.currency = self.prefs["currency"]
+        self.evds_key = self.prefs.get("evds_key", "")
+        self.last_result = None
+        self.muted_fg = "#666666"
 
-        root.title("Doğum Günü Hediyesi")
-        root.geometry("640x700")
-        root.minsize(560, 600)
+        root.title("BDAY")
+        root.geometry("660x760")
+        root.minsize(580, 660)
 
         main = ttk.Frame(root, padding=18)
         main.grid(row=0, column=0, sticky="nsew")
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         main.columnconfigure(1, weight=1)
-        main.rowconfigure(9, weight=1)
+        main.rowconfigure(11, weight=1)
 
-        title = ttk.Label(main, text="Doğum günü hediye mesajı", font=("TkDefaultFont", 15, "bold"))
-        title.grid(row=0, column=0, columnspan=3, sticky="w")
+        self.title = ttk.Label(main, font=("TkDefaultFont", 15, "bold"))
+        self.title.grid(row=0, column=0, columnspan=3, sticky="w")
 
-        subtitle = ttk.Label(
-            main,
-            text="Tarih, ad, euro tutarı ve IBAN ile mesajı hazırla. Kur, TCMB EVDS veya açık kur verisinden alınır.",
-            wraplength=580,
-            justify="left",
-        )
-        subtitle.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 12))
+        self.subtitle = ttk.Label(main, wraplength=600, justify="left")
+        self.subtitle.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 10))
 
-        self.date = self._field(main, 2, "Tarih (GG-AA-YYYY)", "Örn. 01-05-2024")
-        ttk.Button(main, text="Bugün", command=self._today, width=9).grid(row=2, column=2, sticky="w", padx=(8, 0))
-        self.name = self._field(main, 3, "Ad", "Örn. Elif")
-        self.amount = self._field(main, 4, "Tutar (EUR)", "Örn. 25,50")
-        self.iban = self._field(main, 5, "IBAN (isteğe bağlı)", "TR00 0000 0000 0000 0000 0000 00")
-        self.key = self._field(main, 6, "EVDS anahtarı (isteğe bağlı)", "Anahtarınız varsa girin")
-        self.key.configure(show="•")
-        self.manual = self._field(main, 7, "Kur elle (isteğe bağlı)", "Örn. 34,70 — internet yoksa")
+        preferences = ttk.LabelFrame(main, padding=10)
+        preferences.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(0, 10))
+        preferences.columnconfigure(1, weight=1)
+        preferences.columnconfigure(3, weight=1)
+
+        self.currency_label = ttk.Label(preferences)
+        self.currency_label.grid(row=0, column=0, sticky="w")
+        self.currency_combo = ttk.Combobox(preferences, state="readonly", width=10,
+                                           values=list(logic.CURRENCIES))
+        self.currency_combo.set(self.currency)
+        self.currency_combo.grid(row=0, column=1, sticky="w", padx=(6, 16))
+        self.currency_combo.bind("<<ComboboxSelected>>", self._currency_changed)
+
+        self.language_label = ttk.Label(preferences)
+        self.language_label.grid(row=0, column=2, sticky="w")
+        self.language_combo = ttk.Combobox(preferences, state="readonly", width=10,
+                                           values=["Türkçe", "English"])
+        self.language_combo.set("Türkçe" if self.lang == "tr" else "English")
+        self.language_combo.grid(row=0, column=3, sticky="w", padx=(6, 16))
+        self.language_combo.bind("<<ComboboxSelected>>", self._language_changed)
+
+        self.theme_button = ttk.Button(preferences, command=self._theme_toggled, width=14)
+        self.theme_button.grid(row=0, column=4, sticky="w")
+
+        self.date_label = ttk.Label(main, anchor="w")
+        self.date_label.grid(row=3, column=0, sticky="w", pady=3)
+        self.date = self._entry(main, 3)
+        self.today_button = ttk.Button(main, command=self._today, width=9)
+        self.today_button.grid(row=3, column=2, sticky="w", padx=(8, 0))
+
+        self.name_label = ttk.Label(main, anchor="w")
+        self.name_label.grid(row=4, column=0, sticky="w", pady=3)
+        self.name = self._entry(main, 4)
+
+        self.amount_label = ttk.Label(main, anchor="w")
+        self.amount_label.grid(row=5, column=0, sticky="w", pady=3)
+        self.amount = self._entry(main, 5)
+
+        self.iban_label = ttk.Label(main, anchor="w")
+        self.iban_label.grid(row=6, column=0, sticky="w", pady=3)
+        self.iban = self._entry(main, 6)
+
+        self.key_label = ttk.Label(main, anchor="w")
+        self.key_label.grid(row=7, column=0, sticky="w", pady=3)
+        self.key = self._entry(main, 7)
+        self.forget_key_button = ttk.Button(main, command=self._forget_key, width=12)
+        self.forget_key_button.grid(row=7, column=2, sticky="w", padx=(8, 0))
+
+        self.manual_label = ttk.Label(main, anchor="w")
+        self.manual_label.grid(row=8, column=0, sticky="w", pady=3)
+        self.manual = self._entry(main, 8)
 
         actions = ttk.Frame(main)
-        actions.grid(row=8, column=0, columnspan=3, sticky="w", pady=12)
-        self.generate_button = ttk.Button(actions, text="Kuru al ve mesajı oluştur", command=self._generate)
+        actions.grid(row=9, column=0, columnspan=3, sticky="w", pady=10)
+        self.generate_button = ttk.Button(actions, command=self._generate)
         self.generate_button.grid(row=0, column=0)
-        ttk.Button(actions, text="Alanları temizle", command=self._clear).grid(row=0, column=1, padx=(8, 0))
+        self.clear_button = ttk.Button(actions, command=self._clear)
+        self.clear_button.grid(row=0, column=1, padx=(8, 0))
 
-        self.status = ttk.Label(main, text="", foreground="#8a1c1c", wraplength=580, justify="left")
-        self.status.grid(row=9, column=0, columnspan=3, sticky="we")
+        self.status = ttk.Label(main, wraplength=600, justify="left")
+        self.status.grid(row=10, column=0, columnspan=3, sticky="we")
 
-        result = ttk.LabelFrame(main, text="Hazır mesaj", padding=10)
-        result.grid(row=10, column=0, columnspan=3, sticky="nsew", pady=(8, 0))
-        result.columnconfigure(0, weight=1)
+        self.result = ttk.LabelFrame(main, padding=10)
+        self.result.grid(row=11, column=0, columnspan=3, sticky="nsew", pady=(8, 0))
+        self.result.columnconfigure(0, weight=1)
 
-        self.rate_label = ttk.Label(result, text="Kur: –", anchor="w")
+        self.rate_label = ttk.Label(self.result, anchor="w")
         self.rate_label.grid(row=0, column=0, sticky="w")
-        self.total_label = ttk.Label(result, text="TL tutarı: –", anchor="w")
+        self.total_label = ttk.Label(self.result, anchor="w")
         self.total_label.grid(row=1, column=0, sticky="w", pady=(2, 8))
 
-        self.message = scrolledtext.ScrolledText(result, height=5, wrap="word")
+        self.message = scrolledtext.ScrolledText(self.result, height=5, wrap="word")
         self.message.grid(row=2, column=0, sticky="nsew")
         self.message.configure(state="disabled")
-        result.rowconfigure(2, weight=1)
+        self.result.rowconfigure(2, weight=1)
 
-        copy = ttk.Button(result, text="Mesajı kopyala", command=self._copy)
-        copy.grid(row=3, column=0, sticky="w", pady=(8, 0))
+        self.copy_button = ttk.Button(self.result, command=self._copy)
+        self.copy_button.grid(row=3, column=0, sticky="w", pady=(8, 0))
 
-        footnote = ttk.Label(
-            main,
-            text="Kur kaynağı: TCMB EVDS (anahtar girilirse), aksi halde ECB / Frankfurter. İnternet yoksa kur elle girilebilir.",
-            wraplength=580,
-            justify="left",
-            foreground="#555555",
-        )
-        footnote.grid(row=11, column=0, columnspan=3, sticky="w", pady=(10, 0))
+        self.footnote = ttk.Label(main, wraplength=600, justify="left")
+        self.footnote.grid(row=12, column=0, columnspan=3, sticky="w", pady=(10, 0))
 
         for entry in (self.date, self.name, self.amount, self.iban, self.key, self.manual):
             entry.bind("<Return>", lambda _event: self._generate())
 
-    @staticmethod
-    def _field(parent: ttk.Frame, row: int, label: str, placeholder: str) -> ttk.Entry:
-        ttk.Label(parent, text=label, anchor="w").grid(row=row, column=0, sticky="w", pady=3)
+        self._retranslate()
+        if self.evds_key:
+            self.key.delete(0, "end")
+            self.key.insert(0, self.evds_key)
+            self.key.configure(foreground=self._entry_fg())
+        self.key.bind("<FocusOut>", lambda _event: self._remember_key())
+        self._apply_theme()
+
+    def tr(self, key: str, **variables) -> str:
+        return logic.t(self.lang, key, **variables)
+
+    def _entry(self, parent: ttk.Frame, row: int) -> ttk.Entry:
         entry = ttk.Entry(parent)
-        entry.insert(0, "")
         entry.grid(row=row, column=1, sticky="ew", pady=3)
-        # Placeholder as a one-time hint; the value itself stays empty.
-        entry.configure(foreground="#666666")
-        entry.insert(0, placeholder)
-        entry.bind("<FocusIn>", lambda _e, e=entry, p=placeholder: GiftAppTk._clear_placeholder(e, p))
-        entry.bind("<FocusOut>", lambda _e, e=entry, p=placeholder: GiftAppTk._restore_placeholder(e, p))
         return entry
 
-    @staticmethod
-    def _clear_placeholder(entry: ttk.Entry, placeholder: str) -> None:
-        if entry.get() == placeholder:
-            entry.delete(0, "end")
-            entry.configure(foreground="#000000")
-            if placeholder == "Anahtarınız varsa girin":
-                entry.configure(show="•")
+    def _apply_theme(self) -> None:
+        dark = self.theme == "dark"
+        bg = "#202328" if dark else "#ffffff"
+        fg = "#eef1f5" if dark else "#000000"
+        field = "#191c20" if dark else "#ffffff"
+        soft = "#262a30" if dark else "#f4f6f8"
+        self.muted_fg = "#9aa4b0" if dark else "#666666"
+        self.root.configure(background=bg)
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
+        style.configure("TFrame", background=bg)
+        style.configure("TLabel", background=bg, foreground=fg)
+        style.configure("TLabelframe", background=bg, foreground=fg)
+        style.configure("TLabelframe.Label", background=bg, foreground=fg)
+        style.configure("TButton", background=soft, foreground=fg, borderwidth=1)
+        style.map("TButton", background=[("active", field)])
+        style.configure("TEntry", fieldbackground=field, foreground=fg, insertcolor=fg)
+        style.configure("TCombobox", fieldbackground=field, foreground=fg,
+                        background=soft, arrowcolor=fg)
+        self.message.configure(background=field, foreground=fg, insertbackground=fg)
 
-    @staticmethod
-    def _restore_placeholder(entry: ttk.Entry, placeholder: str) -> None:
-        if not entry.get().strip():
-            entry.insert(0, placeholder)
-            entry.configure(foreground="#666666")
-            entry.configure(show="" if placeholder == "Anahtarınız varsa girin" else entry.cget("show"))
+    def _save_preferences(self) -> None:
+        logic.save_preferences(
+            {
+                "lang": self.lang,
+                "theme": self.theme,
+                "currency": self.currency,
+                "evds_key": self.evds_key,
+            }
+        )
 
-    def _text(self, entry: ttk.Entry, placeholder: str = "") -> str:
+    def _update_forget_button(self) -> None:
+        state = "normal" if self.evds_key else "disabled"
+        self.forget_key_button.configure(state=state)
+
+    def _remember_key(self) -> None:
+        value = self._text(self.key, self.tr("keyPlaceholder")).strip()
+        if value != self.evds_key:
+            self.evds_key = value
+            self._save_preferences()
+        self._update_forget_button()
+
+    def _forget_key(self) -> None:
+        self.evds_key = ""
+        self.key.delete(0, "end")
+        self.key.configure(foreground=self._entry_fg())
+        self._update_forget_button()
+        self._save_preferences()
+        self._set_status(self.tr("keyForgotten"))
+
+    def _set_hints(self) -> None:
+        hints = (
+            (self.date, self.tr("datePlaceholder")),
+            (self.name, self.tr("namePlaceholder")),
+            (self.amount, self.tr("amountPlaceholder")),
+            (self.iban, self.tr("ibanPlaceholder")),
+            (self.key, self.tr("keyPlaceholder")),
+            (self.manual, self.tr("manualPlaceholder")),
+        )
+        for entry, hint in hints:
+            if not entry.get().strip() or entry.get() in [h[1] for h in hints]:
+                entry.delete(0, "end")
+                entry.insert(0, hint)
+                entry.configure(foreground=self.muted_fg)
+        self.key.configure(show="")
+
+    def _retranslate(self) -> None:
+        self.root.title("BDAY — " + self.tr("title"))
+        self.title.configure(text=self.tr("title"))
+        self.subtitle.configure(text=self.tr("subtitle"))
+        self.result.configure(text=self.tr("result"))
+        self.currency_label.configure(text=self.tr("currency"))
+        self.language_label.configure(text=self.tr("language"))
+        self.theme_button.configure(text=self.tr("themeDark") if self.theme == "light" else self.tr("themeLight"))
+        self.date_label.configure(text=self.tr("date"))
+        self.today_button.configure(text=self.tr("today"))
+        self.name_label.configure(text=self.tr("name"))
+        self.amount_label.configure(text=self.tr("amount") + " (" + self.currency + ")")
+        self.iban_label.configure(text=self.tr("iban"))
+        self.key_label.configure(text=self.tr("key"))
+        self.manual_label.configure(text=self.tr("manual", currency=self.currency))
+        self.generate_button.configure(text=self.tr("generate"))
+        self.clear_button.configure(text=self.tr("clear"))
+        self.copy_button.configure(text=self.tr("copy"))
+        self.forget_key_button.configure(text=self.tr("forgetKey"))
+        self.footnote.configure(text=self.tr("footnote"))
+        self._set_hints()
+        self._update_forget_button()
+
+    def _currency_changed(self, _event=None) -> None:
+        self.currency = self.currency_combo.get()
+        self.last_result = None
+        self._clear_result()
+        self._retranslate()
+        self._save_preferences()
+
+    def _language_changed(self, _event=None) -> None:
+        self.lang = "tr" if self.language_combo.get() == "Türkçe" else "en"
+        self._retranslate()
+        if self.last_result:
+            info, name, amount, iban = self.last_result
+            self._show_result(info, name, amount, iban)
+        self._save_preferences()
+
+    def _theme_toggled(self) -> None:
+        self.theme = "dark" if self.theme == "light" else "light"
+        self._apply_theme()
+        self._retranslate()
+        self._save_preferences()
+
+    def _text(self, entry: ttk.Entry, placeholder: str) -> str:
         value = entry.get()
         return "" if value == placeholder else value.strip()
 
     def _set_status(self, text: str) -> None:
         self.status.configure(text=text)
 
-    def _today(self) -> None:
-        import datetime as dt
-
-        self._clear_placeholder(self.date, "Örn. 01-05-2024")
-        self.date.delete(0, "end")
-        self.date.insert(0, dt.date.today().strftime("%d-%m-%Y"))
-        self.date.configure(foreground="#000000")
-
-    def _clear(self) -> None:
-        for entry, placeholder in (
-            (self.date, "Örn. 01-05-2024"),
-            (self.name, "Örn. Elif"),
-            (self.amount, "Örn. 25,50"),
-            (self.iban, "TR00 0000 0000 0000 0000 0000 00"),
-            (self.key, "Anahtarınız varsa girin"),
-            (self.manual, "Örn. 34,70 — internet yoksa"),
-        ):
-            entry.delete(0, "end")
-            entry.insert(0, placeholder)
-            entry.configure(foreground="#666666")
-        self.key.configure(show="")
+    def _clear_result(self) -> None:
         self.message.configure(state="normal")
         self.message.delete("1.0", "end")
         self.message.configure(state="disabled")
-        self.rate_label.configure(text="Kur: –")
-        self.total_label.configure(text="TL tutarı: –")
+        self.rate_label.configure(text="")
+        self.total_label.configure(text="")
+
+    def _today(self) -> None:
+        import datetime as dt
+
+        self.date.delete(0, "end")
+        self.date.insert(0, dt.date.today().strftime("%d-%m-%Y"))
+        self.date.configure(foreground=self._entry_fg())
+
+    def _entry_fg(self) -> str:
+        return "#eef1f5" if self.theme == "dark" else "#000000"
+
+    def _clear(self) -> None:
+        saved_key = self.evds_key
+        self._set_hints()
+        if saved_key:
+            self.key.delete(0, "end")
+            self.key.insert(0, saved_key)
+            self.key.configure(foreground=self._entry_fg())
+        self._clear_result()
         self._set_status("")
 
     def _generate(self) -> None:
-        name = self._text(self.name, "Örn. Elif")
-        iban = self._text(self.iban, "TR00 0000 0000 0000 0000 0000 00")
+        name = self._text(self.name, self.tr("namePlaceholder"))
+        iban = self._text(self.iban, self.tr("ibanPlaceholder"))
         try:
-            date = logic.parse_date(self._text(self.date, "Örn. 01-05-2024"))
-            amount_eur = logic.parse_amount(self._text(self.amount, "Örn. 25,50"))
+            date = logic.parse_date(self._text(self.date, self.tr("datePlaceholder")))
+            amount = logic.parse_amount(self._text(self.amount, self.tr("amountPlaceholder")))
         except logic.GiftError as exc:
             self._set_status(str(exc))
             return
         if not name:
-            self._set_status("Lütfen adı girin.")
+            self._set_status(self.tr("noName"))
             return
 
-        key = self._text(self.key, "Anahtarınız varsa girin")
-        manual = self._text(self.manual, "Örn. 34,70 — internet yoksa")
+        self._remember_key()
+        key = self.evds_key
+        manual = self._text(self.manual, self.tr("manualPlaceholder"))
+        currency = self.currency
         self.generate_button.configure(state="disabled")
-        self._set_status("Kur alınıyor…")
+        self._set_status(self.tr("generating"))
 
         def work() -> None:
             try:
-                info = logic.resolve_rate(date, evds_key=key, manual_rate=manual)
+                info = logic.resolve_rate(
+                    date, evds_key=key, manual_rate=manual, currency=currency, lang=self.lang
+                )
             except logic.GiftError as exc:
-                self.messages.put(("error", f"{exc} Kur alanına TRY/EUR değerini elle yazabilirsiniz."))
+                self.messages.put(("error", f"{exc} {self.tr('manualHint', currency=currency)}"))
             except Exception as exc:  # unexpected failure: keep the app usable
                 self.messages.put(("error", f"Beklenmeyen bir hata oluştu: {exc}"))
             else:
-                self.messages.put(("ok", name, amount_eur, iban, info))
+                self.messages.put(("ok", info, name, amount, iban))
 
         threading.Thread(target=work, daemon=True).start()
         self.root.after(100, self._drain)
@@ -193,32 +337,41 @@ class GiftAppTk:
         if item[0] == "error":
             self._set_status(item[1])
         else:
-            _kind, name, amount_eur, iban, info = item
-            total = amount_eur * info.rate
-            message = logic.build_message(name, total, iban)
-            self.rate_label.configure(
-                text=f"Kur: {info.rate:.4f} TRY/EUR ({info.source}, {info.used_date})"
-            )
-            self.total_label.configure(text=f"TL tutarı: {logic.format_amount(total)} TL")
-            self.message.configure(state="normal")
-            self.message.delete("1.0", "end")
-            self.message.insert("1.0", message)
-            self.message.configure(state="disabled")
-            note = f" {info.note}" if info.note else ""
-            self._set_status("Mesaj hazır." + note)
+            _kind, info, name, amount, iban = item
+            self._show_result(info, name, amount, iban)
         self.generate_button.configure(state="normal")
+
+    def _show_result(self, info: logic.RateInfo, name: str, amount: float, iban: str) -> None:
+        self.last_result = (info, name, amount, iban)
+        total = amount * info.rate
+        source_key = {
+            "TCMB EVDS": "sourceEvds",
+            "ECB / Frankfurter": "sourcePublic",
+            "Elle girilen kur": "sourceManual",
+        }.get(info.source, "sourcePublic")
+        self.rate_label.configure(
+            text=f"{self.tr('rate')}: {info.rate:.4f} {self.currency}/TRY ({self.tr(source_key)}, {info.used_date})"
+        )
+        self.total_label.configure(text=f"{self.tr('total')}: {logic.format_amount(total, self.lang)} TL")
+        self.message.configure(state="normal")
+        self.message.delete("1.0", "end")
+        self.message.insert("1.0", logic.build_message(name, total, iban, self.lang))
+        self.message.configure(state="disabled")
+        note_text = logic.note_text(info, self.lang)
+        note = f" {note_text}" if note_text else ""
+        self._set_status(self.tr("ready") + note)
 
     def _copy(self) -> None:
         self.message.configure(state="normal")
         text = self.message.get("1.0", "end").strip()
         self.message.configure(state="disabled")
         if not text:
-            self._set_status("Önce mesajı oluşturun.")
+            self._set_status(self.tr("noMessage"))
             return
         self.root.clipboard_clear()
         self.root.clipboard_append(text)
         self.root.update()
-        self._set_status("Mesaj kopyalandı.")
+        self._set_status(self.tr("copied"))
 
 
 def main() -> None:

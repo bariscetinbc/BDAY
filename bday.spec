@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller recipe: a double-clickable macOS .app."""
+"""PyInstaller recipe: one self-contained Windows executable."""
 
 page_files = [
     ("src/index.html", "."),
@@ -17,6 +17,8 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=["matplotlib", "numpy", "pandas", "PyQt5", "PySide2", "PySide6"],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
     cipher=None,
     noarchive=False,
 )
@@ -26,9 +28,11 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=None)
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
-    name="DogumGunuHediyesi",
+    name="BDAY",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -39,27 +43,4 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=False,
-    upx_exclude=[],
-    name="DogumGunuHediyesi",
-)
-
-app = BUNDLE(
-    coll,
-    name="DogumGunuHediyesi.app",
-    icon=None,
-    bundle_identifier="com.birthdaygift.hediye",
-    info_plist={
-        "NSHighResolutionCapable": True,
-        "CFBundleDisplayName": "Doğum Günü Hediyesi",
-        "LSMinimumSystemVersion": "10.13.0",
-    },
 )
