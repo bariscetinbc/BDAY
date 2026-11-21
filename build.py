@@ -52,8 +52,10 @@ desktop.write_text(
     "değerden alınır. Mesaj seçilen dilde hazırlanır. EVDS anahtarınızı girdiğinizde\n"
     "sonraki açılışlarda geri yüklenir; 'Anahtarı unut' ile silinene kadar saklanır.\n\n"
     "Masaüstünde çalıştırmak için bday.sh dosyasını açın (Linux: Python 3 + GTK 3).\n"
-    "Windows için build-windows.bat, Mac için build-mac.command dosyası kendi başına çalıştırılabilir\n"
-    "program hazırlar. Ayrıntılar README.md dosyasındadır.\n",
+    "Windows için hazır program downloads/Windows/BDAY-Windows.zip içindedir: dosyayı açın ve\n"
+    "BDAY.exe dosyasına çift tıklayın. Mac için downloads/Mac/BDAY-Mac.dmg hazırdır.\n"
+    "Kendi başınıza program hazırlamak isterseniz build-windows.bat veya build-mac.command\n"
+    "dosyalarını kullanabilirsiniz. Ayrıntılar README.md dosyasındadır.\n",
     encoding="utf-8",
 )
 

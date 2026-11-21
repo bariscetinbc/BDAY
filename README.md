@@ -22,8 +22,8 @@ Dil değiştirildiğinde hazır mesaj da yeni dilde yeniden yazılır.
 
 | Sistem | Ne yapmalısınız |
 | --- | --- |
-| Windows | İndirilen `BDAY-Windows.zip` dosyasını açın, `BDAY.exe` dosyasına çift tıklayın. Kurulum gerekmez. |
-| Mac | İndirilen `BDAY-Mac.dmg` dosyasını açın, uygulamayı `Applications` klasörüne sürükleyin ve açın. Mac bazen "bilinmeyen geliştirici" uyarısı gösterir; **Aç**'ı seçin. |
+| Windows | [BDAY-Windows.zip](https://github.com/bariscetinbc/BDAY/releases/latest/download/BDAY-Windows.zip) dosyasını indirin, açın ve `BDAY.exe` dosyasına çift tıklayın. Kurulum gerekmez. Hazır kopya ayrıca `downloads/Windows/BDAY-Windows.zip` içinde duruyor. |
+| Mac | [BDAY-Mac.dmg](https://github.com/bariscetinbc/BDAY/releases/latest/download/BDAY-Mac.dmg) dosyasını indirin, açın ve uygulamayı `Applications` klasörüne sürükleyin. Hazır kopya ayrıca `downloads/Mac/BDAY-Mac.dmg` içinde duruyor. Mac bazen "bilinmeyen geliştirici" uyarısı gösterir; **Aç**'ı seçin. |
 | Linux | `python3 main.py` komutunu çalıştırın (GTK 3 gerekir). |
 | Hiçbiri | `dist/index.html` dosyasını tarayıcıda açın. İnternet gerekmeden çalışır; kur yazılabilir. |
 
@@ -50,16 +50,9 @@ Kur sırası: elle girilen değer → EVDS anahtarı → açık ECB/Frankfurter 
 
 ## GitHub deposu
 
-Proje <https://github.com/bariscetinbc/BDAY> adresinde yayımlanmak üzere hazırdır. Bu bilgisayarda GitHub girişi olmadığı için ilk yükleme sizin hesabınızdan yapılmalıdır.
+Proje <https://github.com/bariscetinbc/BDAY> adresinde yayımlandı. Windows ve Mac programları GitHub Actions ile oluşturuldu; indirme dosyaları `downloads/` klasöründe de hazır duruyor.
 
-En kolay yol: bu klasörde `./publish.sh` dosyasını çalıştırın. GitHub CLI ile giriş yapmanızı ister, `BDAY` deposunu hesabınızda açar ve kodu yükler. Zaten giriş yaptıysanız tek adımda yüklemeyi tamamlar.
-
-Elle yapmak isterseniz:
-
-1. <https://github.com/new> adresine gidin, depo adına `BDAY` yazın, **Public** veya **Private** seçin ve "README ile başlat" kutusunu işaretlemeyin.
-2. Bilgisayarda şu komutları çalıştırın: `gh auth login`, ardından `gh repo create bariscetinbc/BDAY --public --source=. --remote=origin --push` (depoyu siz açtıysanız ikinci komut yerine `git push -u origin main` yeterli).
-3. **Actions** sekmesini açın. *Build BDAY for Windows and Mac* işi çalışır; bitince en üstteki çalıştırmaya tıklayın ve **Artifacts** bölümünden Windows ve Mac dosyalarını indirin.
-4. (İsteğe bağlı) Yeni bir sürüm yayınlamak için **Releases → Draft a new release** bölümünde `v1.0` gibi bir etiket oluşturun. GitHub otomatik olarak Windows ve Mac indirmelerini sürüme ekler.
+GitHub'daki **Releases** bölümünden en son sürümü açarsanız `BDAY-Windows.zip` ve `BDAY-Mac.dmg` dosyalarını doğrudan indirebilirsiniz. Kodda değişiklik yapıp yüklemek isterseniz `git push -u origin main` yeterli; her yüklemede Windows ve Mac dosyaları yeniden hazırlanır. `v1.0` gibi bir etiket yüklerseniz dosyalar otomatik olarak yeni sürüme eklenir.
 
 ## Geliştirici notları
 
