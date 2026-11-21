@@ -2,7 +2,7 @@
   "name": "bday",
   "version": "5.0.0",
   "private": true,
-  "description": "BDAY — birthday gift message tool with currency choice, Turkish/English language and light/dark theme. Windows and Mac builds are prepared by GitHub Actions.",
+  "description": "BDAY — birthday gift message tool with currency choice, Turkish/English language and light/dark theme. Windows, Mac and Linux builds are prepared by GitHub Actions.",
   "scripts": {
     "build": "python3 build.py",
     "test": "python3 selftest.py"

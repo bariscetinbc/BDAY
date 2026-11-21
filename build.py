@@ -54,6 +54,8 @@ desktop.write_text(
     "Masaüstünde çalıştırmak için bday.sh dosyasını açın (Linux: Python 3 + GTK 3).\n"
     "Windows için hazır program downloads/Windows/BDAY-Windows.zip içindedir: dosyayı açın ve\n"
     "BDAY.exe dosyasına çift tıklayın. Mac için downloads/Mac/BDAY-Mac.dmg hazırdır.\n"
+    "Linux için hazır program downloads/Linux/BDAY-Linux.tar.gz içindedir: dosyayı açın ve\n"
+    "BDAY dosyasına çift tıklayın (Python gerekmez; GTK 3 gereklidir).\n"
     "Kendi başınıza program hazırlamak isterseniz build-windows.bat veya build-mac.command\n"
     "dosyalarını kullanabilirsiniz. Ayrıntılar README.md dosyasındadır.\n",
     encoding="utf-8",

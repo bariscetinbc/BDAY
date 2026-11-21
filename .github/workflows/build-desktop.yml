@@ -1,4 +1,4 @@
-name: Build BDAY for Windows and Mac
+name: Build BDAY for Windows, Mac and Linux
 
 # Runs on every push and can also be started by hand from the Actions tab.
 # A tag beginning with v (for example v1.0) also publishes a GitHub release
@@ -58,16 +58,39 @@ jobs:
           name: Mac
           path: BDAY-Mac.dmg
 
+  linux:
+    name: Linux program
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install desktop libraries and packaging tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 gir1.2-gtk-3.0
+          python3 -m pip install --upgrade pip pyinstaller
+      - name: Check the calculations
+        run: python3 selftest.py
+      - name: Build the Linux executable and its download
+        run: python3 build_linux.py
+      - name: Keep the download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux
+          path: downloads/Linux/BDAY-Linux.tar.gz
+
   release:
     name: Publish downloads
-    needs: [windows, macos]
+    needs: [windows, macos, linux]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: downloads
-      - name: Attach both downloads to the release
+      - name: Attach all three downloads to the release
         uses: softprops/action-gh-release@v2
         with:
           files: downloads/**/*
