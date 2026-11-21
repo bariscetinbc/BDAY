@@ -17,3 +17,11 @@ Archive:  downloads/Windows/BDAY-Windows.zip
  11799115  2026-11-21 22:34   BDAY.exe
 ---------                     -------
  11799115                     1 file
+
+Linux download added (after the person asked where the Linux version was):
+- Local file: downloads/Linux/BDAY-Linux.tar.gz (105478788 bytes)
+- Release asset: https://github.com/bariscetinbc/BDAY/releases/download/v1.0/BDAY-Linux.tar.gz
+- Built with PyInstaller from bday_linux.spec: ELF 64-bit x86-64 executable, GTK 3 window.
+- GitHub Actions run 44958678010 completed successfully with a passing "Linux program" job.
+- main pushed at 3039167 with the Linux spec, build script, workflow and instructions.
+- Browser preview unchanged: python3 build.py succeeds, 26 self-tests pass, rebuild_check 90%.
